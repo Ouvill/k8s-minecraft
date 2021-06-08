@@ -85,3 +85,9 @@ if you want use ramdisk, apply Manufest
 ```
 $ kubectl apply -k overlays/ramdisk/
 ```
+
+### delete
+
+```
+$ kubectl delete -k overlays/ramdisk
+```
