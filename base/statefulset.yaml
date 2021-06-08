@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: minecraft
+spec:
+  selector:
+    matchLabels:
+      app: minecraft
+  serviceName: minecraft
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: minecraft
+    spec:
+      containers:
+      - name: minecraft
+        image: itzg/minecraft-server:java16
+        ports:
+        - containerPort: 25565
+          name: minecraft
+        volumeMounts:
+        - name: minecraft-pvc
+          mountPath: /data
+        envFrom:
+          - configMapRef:
+              name: minecraft-properties
+
+  volumeClaimTemplates:
+  - metadata:
+      name: minecraft-pvc
+    spec:
+      selector:
+        matchLabels:
+          app: minecraft
+      volumeMode: Filesystem
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 4Gi

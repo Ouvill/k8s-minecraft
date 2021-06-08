@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: minecraft
+spec:
+  selector:
+    matchLabels:
+      app: minecraft
+  serviceName: minecraft
+  replicas: 1
+  template:
+    metadata:
+      name: minecraft
+      labels:
+        app: minecraft
+    spec:
+      terminationGracePeriodSeconds: 300
+
+      initContainers:
+      - name: minecraft-init
+        image: instrumentisto/rsync-ssh
+        imagePullPolicy: Always
+        command:
+          - sh
+          - -c
+          - |
+            rsync -av /backup/ /data
+        volumeMounts:
+          - name: minecraft-ram-disk
+            mountPath: /data
+          - name: minecraft-pvc
+            mountPath: /backup
+
+      containers:
+      - name: minecraft
+        resources:
+          requests:
+            cpu: "1"
+            memory: "4Gi"
+          limits:
+            memory: "6Gi"
+            cpu: "3"
+        volumeMounts:
+          - name: minecraft-ram-disk
+            mountPath: /data
+          - name: minecraft-pvc
+            mountPath: /backup
+
+      - name: backup
+        image: instrumentisto/rsync-ssh
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        command: ['/entrypoint.sh']
+        volumeMounts:
+          - name: minecraft-ram-disk
+            mountPath: /data
+          - name: minecraft-pvc
+            mountPath: /backup
+
+          - name: minecraft-backup-script
+            mountPath: /var/spool/cron/crontabs/root
+            subPath: cron-root
+          - name: minecraft-backup-script
+            mountPath: /entrypoint.sh
+            subPath: entrypoint.sh
+          - name: minecraft-backup-script
+            mountPath: /backup.sh
+            subPath: backup.sh
+
+      volumes:
+        - name: minecraft-ram-disk
+          emptyDir:
+            medium: Memory
+            sizeLimit: 4Gi
+        - name: minecraft-backup-script
+          configMap:
+            name: minecraft-backup-script
+            defaultMode: 0755
